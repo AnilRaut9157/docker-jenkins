@@ -1,43 +1,33 @@
-@Library("Shared") _
-pipeline{
-    
-    agent { label "vinod"}
-    
-    stages{
-        
-        stage("Hello"){
-            steps{
-                script{
-                    hello()
+pipeline {
+    agent any
+
+    stages {
+        stage ("code") {
+            steps {
+                echo "Cloning the code"
+                git url: "https://github.com/AnilRaut9157/docker-jenkins.git", branch: "main"
+            }
+        }
+        stage ("build") {
+            steps {
+                echo "Building the Docker image"
+                sh "docker build -t its-my-note-app ."
+            }
+        }
+        stage ("push to docker hub") {
+            steps {
+                echo "Pushing the image to Docker Hub"
+                withCredentials([usernamePassword(credentialsId: "dockerhub", passwordVariable: "dockerHubPass", usernameVariable: "dockerHubUser")]) {
+                    sh "docker tag its-my-note-app ${env.dockerHubUser}/its-my-note-app:latest"
+                    sh "docker login -u ${env.dockerHubUser} -p ${env.dockerHubPass}"
+                    sh "docker push ${env.dockerHubUser}/its-my-note-app:latest"
                 }
             }
         }
-        stage("Code"){
-            steps{
-               script{
-                clone("https://github.com/LondheShubham153/django-notes-app.git","main")
-               }
-                
-            }
-        }
-        stage("Build"){
-            steps{
-                script{
-                docker_build("notes-app","latest","trainwithshubham")
-                }
-            }
-        }
-        stage("Push to DockerHub"){
-            steps{
-                script{
-                    docker_push("notes-app","latest","trainwithshubham")
-                }
-            }
-        }
-        stage("Deploy"){
-            steps{
-                echo "This is deploying the code"
-                sh "docker compose down && docker compose up -d"
+        stage ("deploy") {
+            steps {
+                echo "Deploying using Docker Compose"
+                sh "docker-compose down && docker-compose up -d"
             }
         }
     }
