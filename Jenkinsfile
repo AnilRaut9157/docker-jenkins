@@ -1,43 +1,32 @@
-@Library("Shared") _
-pipeline{
-    
-    agent { label "vinod"}
-    
-    stages{
-        
-        stage("Hello"){
-            steps{
-                script{
-                    hello()
-                }
+pipeline {
+    agent any
+
+    stages {
+        stage ("code"){
+            steps {
+                echo "cloning the code"
+                git url: "https://github.com/LondheShubham153/django-notes-app.git", branch: "main"
             }
         }
-        stage("Code"){
-            steps{
-               script{
-                clone("https://github.com/LondheShubham153/django-notes-app.git","main")
-               }
-                
+        stage ("build"){
+            steps {
+                echo "building the image"
+                sh "docker build -t my-note-app ."
             }
         }
-        stage("Build"){
-            steps{
-                script{
-                docker_build("notes-app","latest","trainwithshubham")
-                }
+        stage ("push to docker hub"){
+            steps {
+                echo "pushing the image to docker hub"
+                withCredentials([usernamePassword(credentialsId:"dockerhub" , passwordVarible:"dockerHubPass", usernameVariable:"dockerHubUser")])
+                sh "docker tag my-note-app ${env.dockerHubUser}/my-note-app:letest"
+                sh "docker login -u ${env.dockerHubUser} -p ${env.dockerHubPass}"
+                sh "docker push ${env.dockerHubUser}/my-note-app:latest"
             }
         }
-        stage("Push to DockerHub"){
-            steps{
-                script{
-                    docker_push("notes-app","latest","trainwithshubham")
-                }
-            }
-        }
-        stage("Deploy"){
-            steps{
-                echo "This is deploying the code"
-                sh "docker compose down && docker compose up -d"
+        stage ("deploy"){
+            steps {
+                echo "this is deploy stage"
+                sh "docker-compose down && docker-compose up -d"
             }
         }
     }
