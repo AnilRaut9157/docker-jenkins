@@ -11,16 +11,16 @@ pipeline {
         stage ("build") {
             steps {
                 echo "Building the Docker image"
-                sh "docker build -t its-my-note-app-1 ."
+                sh "docker build -t its-my-note-app-01 ."
             }
         }
         stage ("push to docker hub") {
             steps {
                 echo "Pushing the image to Docker Hub"
                 withCredentials([usernamePassword(credentialsId: "dockerhub", passwordVariable: "dockerHubPass", usernameVariable: "dockerHubUser")]) {
-                    sh "docker tag its-my-note-app-1 ${env.dockerHubUser}/its-my-note-app-1:latest"
+                    sh "docker tag its-my-note-app-01 ${env.dockerHubUser}/its-my-note-app-01:latest"
                     sh "docker login -u ${env.dockerHubUser} -p ${env.dockerHubPass}"
-                    sh "docker push ${env.dockerHubUser}/its-my-note-app-1:latest"
+                    sh "docker push ${env.dockerHubUser}/its-my-note-app-01:latest"
                 }
             }
         }
