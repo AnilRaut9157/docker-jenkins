@@ -1,67 +1,34 @@
 pipeline {
     agent any
 
-    environment {
-        SCANNER_HOME = tool 'sonar-scanner'
-    }
-
     stages {
-        stage('Git Checkout') {
+        stage ("code") {
             steps {
-                git branch: 'main', changelog: false, poll: false, url: 'https://github.com/AnilRaut9157/docker-jenkins.git'
+                echo "Cloning the code"
+                git url: "https://github.com/AnilRaut9157/docker-jenkins.git", branch: "main"
             }
         }
-
-        stage('Sonar Analysis') {
+        stage ("build") {
             steps {
-                sh """
-                    ${SCANNER_HOME}/bin/sonar-scanner \
-                    -Dsonar.host.url=http://52.183.28.12:9000/ \
-                    -Dsonar.login=squ_49063763beb708d26cc063dc507b55a194aa64bb \
-                    -Dsonar.projectName=docker-jenkins \
-                    -Dsonar.java.binaries=target \
-                    -Dsonar.projectKey=docker-jenkins
-                """
+                echo "Building the Docker image"
+                sh "docker build -t its-my-note ."
             }
         }
-        
-        stage('OWASP Analysis') {
+        stage ("push to docker hub") {
             steps {
-                dependencyCheck additionalArguments: '--scan ./', odcInstallation: 'DP'
-                dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
-            }
-        }
-
-        stage('Docker Build and Push') {
-            steps {
-                script {
-                    withDockerRegistry(credentialsId: 'f1bebc5e-9bd3-46b6-94b8-7917f77a3c70') {
-                        sh """
-                            docker build -t my-note-app .
-                            docker tag my-note-app anilkumarraut9157/my-note-app:latest
-                            docker push anilkumarraut9157/my-note-app:latest
-                        """
-                    }
+                echo "Pushing the image to Docker Hub"
+                withCredentials([usernamePassword(credentialsId: "dockerhub", passwordVariable: "dockerHubPass", usernameVariable: "dockerHubUser")]) {
+                    sh "docker tag its-my-note ${env.dockerHubUser}/its-my-note:latest"
+                    sh "docker login -u ${env.dockerHubUser} -p ${env.dockerHubPass}"
+                    sh "docker push ${env.dockerHubUser}/its-my-note:latest"
                 }
             }
         }
-
-        stage('Deploy to Docker') {
+        stage ("deploy") {
             steps {
-                script {
-                    sh """
-                        # Stop and remove any running container named 'my-note-app'
-                        docker ps -q --filter "name=my-note-app" | xargs -r docker stop
-                        docker ps -aq --filter "name=my-note-app" | xargs -r docker rm
-
-                        # Run the new container
-                        docker run -d --name my-note-app -p 8000:8000 anilkumarraut9157/my-note-app:latest
-                    """
-                }
+                echo "Deploying using Docker Compose"
+                sh "docker-compose down && docker-compose up -d"
             }
         }
-    
-
-    
     }
 }
