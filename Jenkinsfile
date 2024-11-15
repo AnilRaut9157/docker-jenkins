@@ -11,6 +11,7 @@ pipeline {
                 git branch: 'main', changelog: false, poll: false, url: 'https://github.com/AnilRaut9157/docker-jenkins.git'
             }
         }
+        
         stage('Sonar Analysis') {
             steps {
                 sh """
@@ -23,7 +24,8 @@ pipeline {
                 """
             }
         }
-         stage('Docker Build and Push') {
+        
+        stage('Docker Build and Push') {
             steps {
                 script {
                     withDockerRegistry(credentialsId: 'f1bebc5e-9bd3-46b6-94b8-7917f77a3c70') {
@@ -41,14 +43,24 @@ pipeline {
             steps {
                 script {
                     withDockerRegistry(credentialsId: 'f1bebc5e-9bd3-46b6-94b8-7917f77a3c70') {
-                        def timestamp = new Date().format('yyyyMMddHHmmss')
+                        def containerName = "my-note-app-${new Date().format('yyyyMMddHHmmss')}"
                         sh """
                             docker stop my-note-app || true
                             docker rm my-note-app || true
-                            docker run -d --name my-note-app-${timestamp} -p 8000:8000 anilkumarraut9157/my-note-app:latest
+                            docker run -d --name ${containerName} -p 8000:8000 anilkumarraut9157/my-note-app:latest
                         """
                     }
                 }
+            }
+        }
+
+        stage("Docker Compose Deployment") {
+            steps {
+                echo "Deploying using Docker Compose"
+                sh """
+                    docker-compose down || echo "No containers to stop"
+                    docker-compose up -d
+                """
             }
         }
     }
