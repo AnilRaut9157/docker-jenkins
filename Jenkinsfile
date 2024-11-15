@@ -24,6 +24,7 @@ pipeline {
                 """
             }
         }
+
         stage('OWASP Analysis') {
             steps {
                 dependencyCheck additionalArguments: '--scan ./', odcInstallation: 'DP'
