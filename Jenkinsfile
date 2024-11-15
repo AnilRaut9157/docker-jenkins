@@ -39,19 +39,18 @@ pipeline {
             }
         }
 
-        
-
-         stage('Deploy to Docker') {
+        stage('Deploy to Docker') {
             steps {
                 script {
-                    withDockerRegistry(credentialsId: 'f1bebc5e-9bd3-46b6-94b8-7917f77a3c70') {
-                        def timestamp = new Date().format('yyyyMMddHHmmss')
-                        sh """
-                            docker stop my-note-app || true
-                            docker rm my-note-app || true
-                            docker run -d --name my-note-app-${timestamp} -p 8000:8000 anilkumarraut9157/my-note-app:latest
-                        """
-                    }
+                    def containerName = "my-note-app-${new Date().format('yyyyMMddHHmmss')}"
+                    sh """
+                        # Stop and remove the old container if it exists
+                        docker ps -q --filter "name=my-note-app" | xargs -r docker stop
+                        docker ps -aq --filter "name=my-note-app" | xargs -r docker rm
+
+                        # Run the new container
+                        docker run -d --name ${containerName} -p 8000:8000 anilkumarraut9157/my-note-app:latest
+                    """
                 }
             }
         }
@@ -60,7 +59,10 @@ pipeline {
             steps {
                 echo "Deploying using Docker Compose"
                 sh """
+                    # Ensure clean-up of old containers
                     docker-compose down || echo "No containers to stop"
+
+                    # Start new containers
                     docker-compose up -d
                 """
             }
