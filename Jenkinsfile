@@ -24,6 +24,12 @@ pipeline {
                 """
             }
         }
+        stage('OWASP Analysis') {
+            steps {
+                dependencyCheck additionalArguments: '--scan ./', odcInstallation: 'DP'
+                dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
+            }
+        }
 
         stage('Docker Build and Push') {
             steps {
@@ -55,15 +61,6 @@ pipeline {
         }
     }
 
-    post {
-        always {
-            echo 'Pipeline execution completed.'
-        }
-        success {
-            echo 'Pipeline executed successfully!'
-        }
-        failure {
-            echo 'Pipeline failed. Check logs for errors.'
-        }
+    
     }
 }
