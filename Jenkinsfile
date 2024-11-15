@@ -17,9 +17,9 @@ pipeline {
                     ${SCANNER_HOME}/bin/sonar-scanner \
                     -Dsonar.host.url=http://52.183.28.12:9000/ \
                     -Dsonar.login=squ_49063763beb708d26cc063dc507b55a194aa64bb \
-                    -Dsonar.projectName=docker-desktop \
+                    -Dsonar.projectName=docker-jenkins \
                     -Dsonar.java.binaries=target \
-                    -Dsonar.projectKey=docker-desktop
+                    -Dsonar.projectKey=docker-jenkins
                 """
             }
         }
