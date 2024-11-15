@@ -1,34 +1,67 @@
 pipeline {
     agent any
 
+    environment {
+        SCANNER_HOME = tool 'sonar-scanner'
+    }
+    
     stages {
-        stage ("code") {
+        stage('Git Checkout') {
             steps {
-                echo "Cloning the code"
-                git url: "https://github.com/AnilRaut9157/docker-jenkins.git", branch: "main"
+                git branch: 'main', changelog: false, poll: false, url: 'https://github.com/AnilRaut9157/docker-jenkins.git'
             }
         }
-        stage ("build") {
+        stage('Sonar Analysis') {
             steps {
-                echo "Building the Docker image"
-                sh "docker build -t its-my-note ."
+                sh """
+                    ${SCANNER_HOME}/bin/sonar-scanner \
+                    -Dsonar.host.url=http://52.183.28.12:9000/ \
+                    -Dsonar.login=squ_49063763beb708d26cc063dc507b55a194aa64bb \
+                    -Dsonar.projectName=docker-desktop \
+                    -Dsonar.java.binaries=target \
+                    -Dsonar.projectKey=docker-desktop
+                """
             }
         }
-        stage ("push to docker hub") {
+         stage('Docker Build and Push') {
             steps {
-                echo "Pushing the image to Docker Hub"
-                withCredentials([usernamePassword(credentialsId: "dockerhub", passwordVariable: "dockerHubPass", usernameVariable: "dockerHubUser")]) {
-                    sh "docker tag its-my-note ${env.dockerHubUser}/its-my-note:latest"
-                    sh "docker login -u ${env.dockerHubUser} -p ${env.dockerHubPass}"
-                    sh "docker push ${env.dockerHubUser}/its-my-note:latest"
+                script {
+                    withDockerRegistry(credentialsId: 'f1bebc5e-9bd3-46b6-94b8-7917f77a3c70') {
+                        sh """
+                            docker build -t my-note-app .
+                            docker tag my-note-app anilkumarraut9157/my-note-app:latest
+                            docker push anilkumarraut9157/my-note-app:latest
+                        """
+                    }
                 }
             }
         }
-        stage ("deploy") {
+
+        stage('Deploy to Docker') {
             steps {
-                echo "Deploying using Docker Compose"
-                sh "docker-compose down && docker-compose up -d"
+                script {
+                    withDockerRegistry(credentialsId: 'f1bebc5e-9bd3-46b6-94b8-7917f77a3c70') {
+                        def timestamp = new Date().format('yyyyMMddHHmmss')
+                        sh """
+                            docker stop my-note-app || true
+                            docker rm my-note-app || true
+                            docker run -d --name my-note-app-${timestamp} -p 8000:8000 anilkumarraut9157/my-note-app:latest
+                        """
+                    }
+                }
             }
+        }
+    }
+
+    post {
+        always {
+            echo 'Pipeline execution completed.'
+        }
+        success {
+            echo 'Pipeline executed successfully!'
+        }
+        failure {
+            echo 'Pipeline failed. Check logs for errors.'
         }
     }
 }
