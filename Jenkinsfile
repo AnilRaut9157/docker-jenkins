@@ -39,34 +39,18 @@ pipeline {
             }
         }
 
-        stage('Deploy to Docker') {
+        
+
+         stage('Deploy to Docker') {
             steps {
                 script {
                     withDockerRegistry(credentialsId: 'f1bebc5e-9bd3-46b6-94b8-7917f77a3c70') {
-                        def containerName = "my-note-app-${new Date().format('yyyyMMddHHmmss')}"
-                        def portInUse = sh(
-                            script: "lsof -i :8000 || echo 'available'",
-                            returnStdout: true
-                        ).trim()
-                        
-                        if (portInUse != 'available') {
-                            echo "Port 8000 is already in use. Trying an alternative port..."
-                            // Define fallback port or handle conflict
-                            def hostPort = "8080" // Example fallback port
-                            sh """
-                                docker stop my-note-app || true
-                                docker rm my-note-app || true
-                                docker run -d --name ${containerName} -p ${hostPort}:8000 anilkumarraut9157/my-note-app:latest
-                            """
-                            echo "Application is running on port ${hostPort}."
-                        } else {
-                            sh """
-                                docker stop my-note-app || true
-                                docker rm my-note-app || true
-                                docker run -d --name ${containerName} -p 8000:8000 anilkumarraut9157/my-note-app:latest
-                            """
-                            echo "Application is running on port 8000."
-                        }
+                        def timestamp = new Date().format('yyyyMMddHHmmss')
+                        sh """
+                            docker stop my-note-app || true
+                            docker rm my-note-app || true
+                            docker run -d --name my-note-app-${timestamp} -p 8000:8000 anilkumarraut9157/my-note-app:latest
+                        """
                     }
                 }
             }
